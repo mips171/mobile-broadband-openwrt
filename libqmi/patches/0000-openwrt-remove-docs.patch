@@ -1,0 +1,90 @@
+From 0a20a805c8e185d11d635bbdf03ac8c71758db73 Mon Sep 17 00:00:00 2001
+From: Aleksander Morgado <aleksander@aleksander.es>
+Date: Fri, 9 Oct 2015 13:59:26 +0200
+Subject: [PATCH] openwrt: remove docs
+
+---
+ Makefile.am  |  3 +--
+ autogen.sh   |  1 -
+ configure.ac | 15 +--------------
+ 3 files changed, 2 insertions(+), 17 deletions(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index 4d2ce1a..bdca63b 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -1,11 +1,10 @@
+ 
+-SUBDIRS = . data build-aux src utils docs
++SUBDIRS = . data build-aux src utils
+ 
+ ACLOCAL_AMFLAGS = -I m4
+ 
+ DISTCHECK_CONFIGURE_FLAGS = \
+ 	--with-udev-base-dir="$$dc_install_base" \
+-	--enable-gtk-doc \
+ 	--enable-mbim-qmux \
+ 	$(NULL)
+ 
+diff --git a/autogen.sh b/autogen.sh
+index 146b78f..f1a7970 100755
+--- a/autogen.sh
++++ b/autogen.sh
+@@ -14,7 +14,6 @@ PKG_NAME=libqmi
+ }
+ 
+ (cd $srcdir;
+-    gtkdocize || exit 1
+     mkdir -p m4
+     touch ChangeLog
+     autoreconf --force --install --verbose
+diff --git a/configure.ac b/configure.ac
+index 9e4243f..8a90397 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -76,9 +76,6 @@ AC_SUBST(GLIB_LIBS)
+ GLIB_MKENUMS=`$PKG_CONFIG --variable=glib_mkenums glib-2.0`
+ AC_SUBST(GLIB_MKENUMS)
+ 
+-dnl Documentation
+-GTK_DOC_CHECK(1.0)
+-
+ # QMI username
+ QMI_USERNAME="root"
+ AC_ARG_ENABLE(qmi-username,
+@@ -129,10 +126,6 @@ else
+ fi
+ AC_SUBST(UDEV_BASE_DIR)
+ 
+-dnl Man page
+-AC_PATH_PROG(HELP2MAN, help2man, false)
+-AM_CONDITIONAL(BUILDOPT_MAN, test x$HELP2MAN != xfalse)
+-
+ AC_CONFIG_FILES([Makefile
+                  data/Makefile
+                  data/pkg-config/Makefile
+@@ -148,12 +141,7 @@ AC_CONFIG_FILES([Makefile
+                  src/qmicli/Makefile
+                  src/qmicli/test/Makefile
+                  src/qmi-proxy/Makefile
+-                 utils/Makefile
+-                 docs/Makefile
+-                 docs/reference/Makefile
+-                 docs/reference/libqmi-glib/Makefile
+-                 docs/reference/libqmi-glib/version.xml
+-                 docs/man/Makefile])
++                 utils/Makefile])
+ 
+ if test "x$QMI_USERNAME_ENABLED" = "xyes"; then
+     AC_CONFIG_FILES([src/qmi-proxy/76-qmi-proxy-device-ownership.rules])
+@@ -169,7 +157,6 @@ echo "
+     cflags:               ${CFLAGS}
+     Maintainer mode:      ${USE_MAINTAINER_MODE}
+     udev base directory:  ${UDEV_BASE_DIR}
+-    Documentation:        ${enable_gtk_doc}
+     QMI username:         ${QMI_USERNAME_ENABLED} (${QMI_USERNAME})
+     QMUX over MBIM:       ${enable_mbim_qmux}
+ "
+-- 
+2.9.0
+
