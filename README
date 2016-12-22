@@ -1,0 +1,44 @@
+# OpenWrt ModemManager feed
+
+## Description
+
+This is an unofficial OpenWrt feed for libqmi, libmbim and ModemManager.
+
+## Usage
+
+This repository is intended to be layered on-top of an OpenWrt buildroot.
+Install it in the following way:
+
+1) Edit your feeds.conf and add the configuration of the new feed:
+    $ vim feeds.conf
+        src-git modemmanager https://aleksander0m@bitbucket.org/aleksander0m/modemmanager-openwrt.git
+
+2) Update the feed:
+    $ ./scripts/feeds update modemmanager
+
+3) Install all packages from the feed:
+    $ ./scripts/feeds install -p modemmanager -a
+
+4) Enable the packages in menuconfig:
+    $ make menuconfig
+        Libraries/libmbim
+        Libraries/libqmi
+        Network/modemmanager
+
+5) Or compile the packages directly:
+    $ make package/libmbim/{clean,compile,install}
+    $ make package/libqmi/{clean,compile,install}
+    $ make package/modemmanager/{clean,compile,install}
+    $ make package/index
+
+6) Once installed, you can configure the 2G/3G/4G modem connections directly in
+   /etc/config/network as in the following example:
+
+    config interface 'broadband'
+        option device   '/sys/devices/platform/soc/20980000.usb/usb1/1-1/1-1.2/1-1.2.1'
+        option proto    'modemmanager'
+        option apn      'ac.vodafone.es'
+        option username 'vodafone'
+        option password 'vodafone'
+        option pincode  '7423'
+        option lowpower '1'
