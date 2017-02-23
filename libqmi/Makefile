@@ -8,13 +8,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=libqmi
-PKG_VERSION:=1.17.0-20161123
+PKG_VERSION:=1.17.901-20170223
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=git://anongit.freedesktop.org/libqmi
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_VERSION:=54f2dde4623d29a70125772c08af0d459dd72703
+PKG_SOURCE_VERSION:=e9ab0ee90a9f2d02d92c9d3dc4db5425c7600221
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 
 PKG_MAINTAINER:=Aleksander Morgado <aleksander@aleksander.es>
@@ -36,6 +36,15 @@ endef
 define Package/libqmi/description
   Helper library and utils to talk to QMI enabled modems
 endef
+
+CONFIGURE_ARGS += \
+        --prefix=/usr \
+        --sysconfdir=/etc \
+        --localstatedir=/var \
+        --enable-mbim-qmux \
+        --enable-firmware-update \
+        --disable-mm-runtime-check \
+        --without-udev
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/include
