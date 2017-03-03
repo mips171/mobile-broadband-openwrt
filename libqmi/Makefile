@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=libqmi
 PKG_VERSION:=1.17.901-20170223
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=git://anongit.freedesktop.org/libqmi
@@ -43,7 +43,6 @@ CONFIGURE_ARGS += \
         --localstatedir=/var \
         --enable-mbim-qmux \
         --enable-firmware-update \
-        --disable-mm-runtime-check \
         --without-udev
 
 define Build/InstallDev
