@@ -8,13 +8,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=modemmanager
-PKG_VERSION:=1.7.0-20161212
+PKG_VERSION:=1.7.990-20180310
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://anongit.freedesktop.org/git/ModemManager/ModemManager.git
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_VERSION:=0bf4db6561de9be61028eb6bc1792a3b7cc410b5
+PKG_SOURCE_VERSION:=3a7d4b12005da1e5e861b8a213814c8743e5208f
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 
 PKG_MAINTAINER:=Aleksander Morgado <aleksander@aleksander.es>
@@ -76,7 +76,7 @@ CONFIGURE_ARGS += \
 define Build/Prepare
 	$(call Build/Prepare/Default)
 	( cd "$(PKG_BUILD_DIR)"; \
-		intltoolize || exit 1; \
+		echo -e "all:\ninstall:" >po/Makefile.in.in; \
 	)
 endef
 
