@@ -8,13 +8,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=libmbim
-PKG_VERSION:=1.15.0-20161123
+PKG_VERSION:=1.16.0
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=git://anongit.freedesktop.org/libmbim/libmbim
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_VERSION:=5c3935b75fc4dd46bc469e18aabb312e74b5915d
+PKG_SOURCE_VERSION:=16e15d49297f72397f6b691cf7a9ccf47bdae844
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 
 PKG_MAINTAINER:=Aleksander Morgado <aleksander@aleksander.es>
