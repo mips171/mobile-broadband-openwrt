@@ -11,7 +11,7 @@ Install it in the following way:
 
 1) Edit your feeds.conf and add the configuration of the new feed:
     $ vim feeds.conf
-        src-git modemmanager https://aleksander0m@bitbucket.org/aleksander0m/modemmanager-openwrt.git
+        src-git modemmanager https://bitbucket.org/aleksander0m/modemmanager-openwrt.git
 
 2) Update the feed:
     $ ./scripts/feeds update modemmanager
