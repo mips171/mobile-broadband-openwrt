@@ -17,7 +17,7 @@ mm_report_event "${ACTION}" "${INTERFACE}" "net" "/sys${DEVPATH}"
 
 # Look for an associated cdc-wdm interface
 {
-	local cdcwdm
+	cdcwdm=""
 
 	case "${ACTION}" in
 		"add")	  cdcwdm=$(mm_track_cdcwdm "${INTERFACE}") ;;
