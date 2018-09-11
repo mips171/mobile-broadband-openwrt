@@ -8,13 +8,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=modemmanager
-PKG_VERSION:=1.7.991-20180404
+PKG_VERSION:=1.8.0
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://anongit.freedesktop.org/git/ModemManager/ModemManager.git
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_VERSION:=7e94928301a971488ea53b17dd7d5ef37f468b1d
+PKG_SOURCE_VERSION:=c187c5fef5e3ffa456b73367afb8d3c888599437
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 
 PKG_MAINTAINER:=Aleksander Morgado <aleksander@aleksander.es>

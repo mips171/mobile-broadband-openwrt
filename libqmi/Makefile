@@ -8,13 +8,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=libqmi
-PKG_VERSION:=1.20.0
+PKG_VERSION:=1.20.2
 PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=git://anongit.freedesktop.org/libqmi
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-PKG_SOURCE_VERSION:=a7fd5363cff7af6137065065ce405adf7bcbfc35
+PKG_SOURCE_VERSION:=c22afdeb8bbe65b5913e1e0121a3ab9622bac1d4
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
 
 PKG_MAINTAINER:=Aleksander Morgado <aleksander@aleksander.es>
