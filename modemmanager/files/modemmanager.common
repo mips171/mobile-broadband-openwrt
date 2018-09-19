@@ -291,9 +291,8 @@ mm_report_event_from_cache_line() {
 }
 
 mm_report_events_from_cache() {
-	# Remove the sysfs and cdc-wdm caches
+	# Remove the sysfs cache
 	rm -f "${MODEMMANAGER_SYSFS_CACHE}"
-	rm -f "${MODEMMANAGER_CDCWDM_CACHE}"
 
 	local n=10
 	local step=1
