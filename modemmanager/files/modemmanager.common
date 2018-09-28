@@ -261,8 +261,10 @@ mm_report_event() {
 	# Track/untrack events in cache
 	case "${action}" in
 		"add")
-			# On add events, store event details in cache
-			echo "${action},${name},${subsystem},${sysfspath}" >> "${MODEMMANAGER_EVENTS_CACHE}"
+			# On add events, store event details in cache (if not exists yet)
+			if ! grep -qs "^${action},${name},${subsystem},${sysfspath}$" "${MODEMMANAGER_EVENTS_CACHE}"; then
+				echo "${action},${name},${subsystem},${sysfspath}" >> "${MODEMMANAGER_EVENTS_CACHE}"
+			fi
 			;;
 		"remove")
 			# On remove events, remove old events from cache (match by subsystem+name)
