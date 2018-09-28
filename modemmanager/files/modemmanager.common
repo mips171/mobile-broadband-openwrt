@@ -188,16 +188,16 @@ mm_report_modem_wait() {
 				local cfg
 
 				cfg=$(mm_get_modem_config "${parent_sysfspath}")
-				[ -n "${cfg}" ] && {
+				if [ -n "${cfg}" ]; then
 					mm_log "interface '${cfg}' is set to configure device '${parent_sysfspath}'"
 					mm_log "now waiting for modem at sysfs path ${parent_sysfspath}"
 					mm_set_modem_wait_status "${parent_sysfspath}" "processed"
 					# Launch subshell for the explicit wait
 					( mm_wait_for_modem "${cfg}" "${parent_sysfspath}" ) > /dev/null 2>&1 &
-				} || {
+				else
 					mm_log "no need to wait for modem at sysfs path ${parent_sysfspath}"
 					mm_set_modem_wait_status "${parent_sysfspath}" "ignored"
-				}
+				fi
 				;;
 			"processed")
 				mm_log "already waiting for modem at sysfs path ${parent_sysfspath}"
