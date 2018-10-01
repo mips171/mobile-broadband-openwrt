@@ -196,6 +196,7 @@ modemmanager_disconnected_method_ppp() {
 modemmanager_connected_method_dhcp() {
 	local interface="$1"
 	local wwan="$2"
+	local metric="$3"
 
 	proto_init_update "${wwan}" 1
 	proto_send_update "${interface}"
@@ -204,6 +205,7 @@ modemmanager_connected_method_dhcp() {
 	json_add_string name "${interface}_4"
 	json_add_string ifname "@${interface}"
 	json_add_string proto "dhcp"
+	[ -n "$metric" ] && json_add_int metric "${metric}"
 	ubus call network add_dynamic "$(json_dump)"
 }
 
@@ -225,6 +227,7 @@ modemmanager_connected_method_static() {
 	local mtu="$6"
 	local dns1="$7"
 	local dns2="$8"
+	local metric="$9"
 
 	local mask=""
 
@@ -257,6 +260,7 @@ modemmanager_connected_method_static() {
 		echo "adding secondary DNS at ${dns2}"
 		proto_add_dns_server "${dns2}"
 	}
+	[ -n "$metric" ] && json_add_int metric "${metric}"
 	proto_send_update "${interface}"
 }
 
@@ -287,8 +291,8 @@ proto_modemmanager_setup() {
 	local modempath modemstatus bearerpath connectargs bearerstatus beareriface method
 	local operatorname operatorid registration accesstech signalquality
 
-	local device apn username password pincode iptype
-	json_get_vars device apn username password pincode iptype
+	local device apn username password pincode iptype metric
+	json_get_vars device apn username password pincode iptype metric
 
 	# Validate sysfs path given in config
 	[ -n "${device}" ] || {
@@ -352,7 +356,7 @@ proto_modemmanager_setup() {
 
 	case "${bearermethod}" in
 	"dhcp")
-		modemmanager_connected_method_dhcp "${interface}" "${beareriface}"
+		modemmanager_connected_method_dhcp "${interface}" "${beareriface}" "${metric}"
 		;;
 	"static")
 		local address=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "address")
@@ -361,7 +365,7 @@ proto_modemmanager_setup() {
 		local mtu=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "MTU")
 		local dns1=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "DNS" 0)
 		local dns2=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "DNS" 1)
-		modemmanager_connected_method_static "${interface}" "${beareriface}" "${address}" "${prefix}" "${gateway}" "${mtu}" "${dns1}" "${dns2}"
+		modemmanager_connected_method_static "${interface}" "${beareriface}" "${address}" "${prefix}" "${gateway}" "${mtu}" "${dns1}" "${dns2}" "${metric}"
 		;;
 	"ppp")
 		modemmanager_connected_method_ppp "${interface}" "${beareriface}" "${username}" "${password}"
