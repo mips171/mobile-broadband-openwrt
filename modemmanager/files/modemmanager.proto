@@ -277,6 +277,7 @@ proto_modemmanager_init_config() {
 	proto_config_add_string	 username
 	proto_config_add_string	 password
 	proto_config_add_string	 pincode
+	proto_config_add_string	 iptype
 	proto_config_add_boolean lowpower
 }
 
@@ -286,8 +287,8 @@ proto_modemmanager_setup() {
 	local modempath modemstatus bearerpath connectargs bearerstatus beareriface method
 	local operatorname operatorid registration accesstech signalquality
 
-	local device apn username password pincode
-	json_get_vars device apn username password pincode
+	local device apn username password pincode iptype
+	json_get_vars device apn username password pincode iptype
 
 	# Validate sysfs path given in config
 	[ -n "${device}" ] || {
@@ -320,7 +321,7 @@ proto_modemmanager_setup() {
 
 	# Setup connect args; APN mandatory (even if it may be empty)
 	echo "starting connection with apn '${apn}'..."
-	connectargs="apn=${apn}${username:+,user=${username}}${password:+,password=${password}}${pincode:+,pin=${pincode}}"
+	connectargs="apn=${apn}${username:+,user=${username}}${password:+,password=${password}}${pincode:+,pin=${pincode}}${iptype:+,ip-type=${iptype}}"
 	/usr/bin/mmcli --modem="${device}" --timeout 120 --simple-connect="${connectargs}" || {
 		proto_notify_error "${interface}" CONNECT_FAILED
 		proto_block_restart "${interface}"
