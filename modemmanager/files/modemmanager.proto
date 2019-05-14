@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 2016 Aleksander Morgado <aleksander@aleksander.es>
+# Copyright (C) 2016-2019 Aleksander Morgado <aleksander@aleksander.es>
 
 [ -x /usr/bin/mmcli ] || exit 0
 [ -x /usr/sbin/pppd ] || exit 0
@@ -19,127 +19,90 @@ cdr2mask ()
 	echo ${1-0}.${2-0}.${3-0}.${4-0}
 }
 
-# Note: won't work with multi-line values
-# TODO: really, just make mmcli output more parseable, this is insane
+# This method expects as first argument a list of key-value pairs, as returned by mmcli --output-keyvalue
+# The second argument must be exactly the name of the field to read
+#
+# Sample output:
+#     $ mmcli -m 0 -K
+#     modem.dbus-path                                 : /org/freedesktop/ModemManager1/Modem/0
+#     modem.generic.device-identifier                 : ed6eff2e3e0f90463da1c2a755b2acacd1335752
+#     modem.generic.manufacturer                      : Dell Inc.
+#     modem.generic.model                             : DW5821e Snapdragon X20 LTE
+#     modem.generic.revision                          : T77W968.F1.0.0.4.0.GC.009\n026
+#     modem.generic.carrier-configuration             : GCF
+#     modem.generic.carrier-configuration-revision    : 08E00009
+#     modem.generic.hardware-revision                 : DW5821e Snapdragon X20 LTE
+#     ....
 modemmanager_get_field() {
-	local text=$1
-	local inblock=$2
-	local infield=$3
-	local fieldindex=${4:-0}
+	local list=$1
+	local field=$2
+	local value=""
 
-	[ -z "${text}" ] || [ -z "${infield}" ] || [ -z "${inblock}" ] && return
+	[ -z "${list}" ] || [ -z "${field}" ] && return
 
-	# Sample output:
-	#
-	# /org/freedesktop/ModemManager1/Modem/0 (device id '391a4fbdb14113ecdd101a23c927ab1e82c51a8e')
-	#	-------------------------
-	#	Hardware |	 manufacturer: 'QUALCOMM INCORPORATED'
-	#			 |			model: '8'
-	#			 |		 revision: '8200C-FACPASZQ-30350  1	 [Dec 15 2011 15:00:00]'
-	#			 |		supported: 'gsm-umts'
-	#			 |		  current: 'gsm-umts'
-	#			 |	 equipment id: '863745010845895'
-	#	-------------------------
-	#	System	 |		   device: '/sys/devices/pci0000:00/0000:00:16.0/usb1/1-1/1-1.3'
-	#			 |		  drivers: 'option, qmi_wwan'
-	#			 |		   plugin: 'Generic'
-	#			 |	 primary port: 'cdc-wdm0'
-	#			 |			ports: 'ttyUSB0 (qcdm), ttyUSB2 (at), cdc-wdm0 (qmi), wwan0 (net)'
-	#	-------------------------
-	#	Numbers	 |			 own : 'unknown'
-	#	-------------------------
-	#	Status	 |			 lock: 'sim-pin2'
-	#			 | unlock retries: 'sim-pin (3), sim-pin2 (3), sim-puk (10), sim-puk2 (10)'
-	#			 |			state: 'registered'
-	#			 |	  power state: 'on'
-	#			 |	  access tech: 'umts'
-	#			 | signal quality: '54' (recent)
-	#	-------------------------
-	#	Modes	 |		supported: 'allowed: 2g; preferred: none
-	#			 |					allowed: 3g; preferred: none
-	#			 |					allowed: 2g, 3g; preferred: none
-	#			 |					allowed: 2g, 3g; preferred: 2g
-	#			 |					allowed: 2g, 3g; preferred: 3g'
-	#			 |		  current: 'allowed: any; preferred: none'
-	#	-------------------------
-	#	Bands	 |		supported: 'unknown'
-	#			 |		  current: 'unknown'
-	#	-------------------------
-	#	IP		 |		supported: 'ipv4, ipv6, ipv4v6'
-	#	-------------------------
-	#	3GPP	 |			 imei: '863745010845895'
-	#			 |	enabled locks: 'none'
-	#			 |	  operator id: '21401'
-	#			 |	operator name: 'vodafone ES'
-	#			 |	 subscription: 'unknown'
-	#			 |	 registration: 'home'
-	#	-------------------------
-	#	SIM		 |			 path: '/org/freedesktop/ModemManager1/SIM/0'
-	#
-	#	-------------------------
-	#	Bearers	 |			paths: 'none'
+	# there is always at least a whitespace after each key, and we use that as part of the
+	# key matching we do (e.g. to avoid getting 'modem.generic.state-failed-reason' as a result
+	# when grepping for 'modem.generic.state'.
+	value=$(echo "${list}" | grep "${field} " | awk -F ':' '{print $2}' | awk '{$1=$1};1')
 
-	# Iterate block by block
-	echo ${text} | awk '{
-		  split($0,array,"-------------------------")
-		  for(i in array) {
-			  print array[i];
-		  }
-	  }' | while read -r line ; do
-		# Look for a matching block title
-		local block=$(echo ${line} | awk -F '\|' '{print $1}')
-		block="$(echo -e "${block}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-		[ "${block}" = "${inblock}" ] && {
-			# Iterate field by field
-			echo ${line} | awk '{
-				  split($0,array,"|")
-				  for(i in array) {
-					  print array[i];
-				  }
-			  }' | while read -r subline ; do
-				local field=$(echo ${subline} | awk -F ':' '{print $1}')
-				field="$(echo -e "${field}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-				[ "${field}" = "${infield}" ] && {
-					local realindex=$(expr 2 \* ${fieldindex} + 2)
-					local value=$(echo ${subline} | awk -F "'" "{print \$${realindex}}")
-					echo "$value"
-					return 0
-				}
-			done
+	# not found?
+	[ -n "${value}" ] || return 2
+
+	# only print value if set
+	[ "${value}" != "--" ] && echo "${value}"
+	return 0
+}
+
+# build a comma-separated list of values from the list
+modemmanager_get_multivalue_field() {
+	local list=$1
+	local field=$2
+	local value=""
+	local length idx item
+
+	[ -z "${list}" ] || [ -z "${field}" ] && return
+
+	length=$(modemmanager_get_field "${list}" "${field}.length")
+	[ -n "${length}" ] || return 0
+	[ $length -ge 1 ] || return 0
+
+	idx=1
+	while [ $idx -ge $length ]; do
+		item=$(modemmanager_get_field "${list}" "${field}.value\[$idx\]")
+		[ -n "${item}" ] && [ "${item}" != "--" ] && {
+			[ -n "${value}" ] && value="${value}, "
+			value="${value}${item}"
 		}
+		idx=$(expr $idx + 1)
 	done
 
-	# Not found
-	return 2
+	# nothing built?
+	[ -n "${value}" ] || return 2
+
+	# only print value if set
+	echo "${value}"
+	return 0
 }
 
-modemmanager_list_bearers() {
-	/usr/bin/mmcli --modem $1 --list-bearers | grep "/org/freedesktop/ModemManager1/Bearer/" 2>/dev/null
-}
+modemmanager_cleanup_connection() {
+	local modemstatus="$1"
 
-modemmanager_get_bearer() {
-	local device="$1"
+	local bearercount idx bearerpath
 
-	local bearers n_bearers
+	bearercount=$(modemmanager_get_field "${modemstatus}" "modem.generic.bearers.length")
 
-	bearers=$(modemmanager_list_bearers "${device}")
-	n_bearers=$(echo "${bearers}" | wc -l)
-	[ ${n_bearers} -eq 1 ] || return
-	echo $bearers
-}
-
-modemmanager_remove_bearers() {
-	local device="$1"
-
-	local bearers n_bearers bearerpath
-
-	bearers=$(modemmanager_list_bearers "${device}")
-	n_bearers=$(echo "${bearers}" | wc -l)
-	[ ${n_bearers} -gt 0 ] || return
-
-	for bearerpath in ${bearers}; do
-		/usr/bin/mmcli --modem "${device}" --delete-bearer="${bearerpath}" >/dev/null 2>&1
-	done
+	# do nothing if no bearers reported
+	[ -n "${bearercount}" ] && [ $bearercount -ge 1 ] && {
+		# explicitly disconnect just in case
+		/usr/bin/mmcli --modem="${device}" --simple-disconnect >/dev/null 2>&1
+		# and remove all bearer objects, if any found
+		idx=1
+		while [ $idx -ge $bearercount ]; do
+			bearerpath=$(modemmanager_get_field "${modemstatus}" "modem.generic.bearers.value\[$idx\]")
+			/usr/bin/mmcli --modem "${device}" --delete-bearer="${bearerpath}" >/dev/null 2>&1
+			idx=$(expr $idx + 1)
+		done
+	}
 }
 
 modemmanager_connected_method_ppp() {
@@ -288,13 +251,13 @@ proto_modemmanager_init_config() {
 proto_modemmanager_setup() {
 	local interface="$1"
 
-	local modempath modemstatus bearerpath connectargs bearerstatus beareriface method
+	local modempath modemstatus bearercount bearerpath connectargs bearerstatus beareriface method
 	local operatorname operatorid registration accesstech signalquality
 
 	local device apn username password pincode iptype metric
 	json_get_vars device apn username password pincode iptype metric
 
-	# Validate sysfs path given in config
+	# validate sysfs path given in config
 	[ -n "${device}" ] || {
 		echo "No device specified"
 		proto_notify_error "${interface}" NO_DEVICE
@@ -307,8 +270,9 @@ proto_modemmanager_setup() {
 		return 1
 	}
 
-	# Validate that ModemManager is handling the modem at the sysfs path
-	modempath=$(/usr/bin/mmcli --modem="${device}" | grep "/org/freedesktop/ModemManager1/Modem" | awk '{ print $1 }')
+	# validate that ModemManager is handling the modem at the sysfs path
+	modemstatus=$(/usr/bin/mmcli --modem="${device}" --output-keyvalue)
+	modempath=$(modemmanager_get_field "${modemstatus}" "modem.dbus-path")
 	[ -n "${modempath}" ] || {
 		echo "Device not managed by ModemManager"
 		proto_notify_error "${interface}" DEVICE_NOT_MANAGED
@@ -317,13 +281,10 @@ proto_modemmanager_setup() {
 	}
 	echo "modem available at ${modempath}"
 
-	# Always startup disconnected
-	/usr/bin/mmcli --modem="${device}" --simple-disconnect >/dev/null 2>&1
+	# always cleanup before attempting a new connection, just in case
+	modemmanager_cleanup_connection "${modemstatus}"
 
-	# Remove all previous bearers, we always create a new one
-	modemmanager_remove_bearers "${device}"
-
-	# Setup connect args; APN mandatory (even if it may be empty)
+	# setup connect args; APN mandatory (even if it may be empty)
 	echo "starting connection with apn '${apn}'..."
 	connectargs="apn=${apn}${username:+,user=${username}}${password:+,password=${password}}${pincode:+,pin=${pincode}}${iptype:+,ip-type=${iptype}}"
 	/usr/bin/mmcli --modem="${device}" --timeout 120 --simple-connect="${connectargs}" || {
@@ -332,26 +293,34 @@ proto_modemmanager_setup() {
 		return 1
 	}
 
-	# Log additional useful information
-	modemstatus=$(/usr/bin/mmcli --modem="${device}")
-	operatorname=$(modemmanager_get_field "${modemstatus}" "3GPP" "operator name")
+	# log additional useful information
+	modemstatus=$(/usr/bin/mmcli --modem="${device}" --output-keyvalue)
+	operatorname=$(modemmanager_get_field "${modemstatus}" "modem.3gpp.operator-name")
 	[ -n "${operatorname}" ] && echo "network operator name: ${operatorname}"
-	operatorid=$(modemmanager_get_field "${modemstatus}" "3GPP" "operator id")
+	operatorid=$(modemmanager_get_field "${modemstatus}" "modem.3gpp.operator-code")
 	[ -n "${operatorid}" ] && echo "network operator MCCMNC: ${operatorid}"
-	registration=$(modemmanager_get_field "${modemstatus}" "3GPP" "registration")
+	registration=$(modemmanager_get_field "${modemstatus}" "modem.3gpp.registration-state")
 	[ -n "${registration}" ] && echo "registration type: ${registration}"
-	accesstech=$(modemmanager_get_field "${modemstatus}" "Status" "access tech")
-	[ -n "${accesstech}" ] && echo "access technology: ${accesstech}"
-	signalquality=$(modemmanager_get_field "${modemstatus}" "Status" "signal quality")
+	accesstech=$(modemmanager_get_multivalue_field "${modemstatus}" "modem.generic.access-technologies")
+	[ -n "${accesstech}"] && echo "access technology: ${accesstech}"
+	signalquality=$(modemmanager_get_field "${modemstatus}" "modem.generic.signal-quality.value")
 	[ -n "${signalquality}" ] && echo "signal quality: ${signalquality}%"
 
-	# Load connected bearer information
-	bearerpath=$(modemmanager_get_bearer "${device}")
-	bearerstatus=$(/usr/bin/mmcli --bearer "${bearerpath}")
+	# we won't like it if there are more than one bearers, as that would mean the
+	# user manually created them, and that's unsupported by this proto
+	bearercount=$(modemmanager_get_field "${modemstatus}" "modem.generic.bearers.length")
+	[ -n "${bearercount}" ] && [ $bearercount -eq 1 ] || {
+		proto_notify_error "${interface}" INVALID_BEARER_LIST
+		return 1
+	}
 
-	# Load network interface and method information
-	beareriface=$(modemmanager_get_field "${bearerstatus}" "Status" "interface")
-	bearermethod=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "method")
+	# load connected bearer information
+	bearerpath=$(modemmanager_get_field "${modemstatus}" "modem.generic.bearers.value\[1\]")
+	bearerstatus=$(/usr/bin/mmcli --bearer "${bearerpath}" --output-keyvalue)
+
+	# load network interface and method information
+	beareriface=$(modemmanager_get_field "${bearerstatus}" "bearer.status.interface")
+	bearermethod=$(modemmanager_get_field "${bearerstatus}" "bearer.ipv4-config.method")
 	echo "connection setup required in interface ${beareriface}: ${bearermethod}"
 
 	case "${bearermethod}" in
@@ -359,12 +328,12 @@ proto_modemmanager_setup() {
 		modemmanager_connected_method_dhcp "${interface}" "${beareriface}" "${metric}"
 		;;
 	"static")
-		local address=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "address")
-		local prefix=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "prefix")
-		local gateway=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "gateway")
-		local mtu=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "MTU")
-		local dns1=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "DNS" 0)
-		local dns2=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "DNS" 1)
+		local address=$(modemmanager_get_field "${bearerstatus}" "bearer.ipv4-config.address")
+		local prefix=$(modemmanager_get_field "${bearerstatus}" "bearer.ipv4-config.prefix")
+		local gateway=$(modemmanager_get_field "${bearerstatus}" "bearer.ipv4-config.gateway")
+		local mtu=$(modemmanager_get_field "${bearerstatus}" "bearer.ipv4-config.mtu")
+		local dns1=$(modemmanager_get_field "${bearerstatus}" "bearer.ipv4-config.dns.value\[1\]")
+		local dns2=$(modemmanager_get_field "${bearerstatus}" "bearer.ipv4-config.dns.value\[2\]")
 		modemmanager_connected_method_static "${interface}" "${beareriface}" "${address}" "${prefix}" "${gateway}" "${mtu}" "${dns1}" "${dns2}" "${metric}"
 		;;
 	"ppp")
@@ -382,22 +351,24 @@ proto_modemmanager_setup() {
 proto_modemmanager_teardown() {
 	local interface="$1"
 
-	local bearerpath method errorstring
+	local modemstatus bearerpath method errorstring
 
 	local device lowpower
 	json_get_vars device lowpower
 
 	echo "stopping network"
 
-	# Load connected bearer information
-	bearerpath=$(modemmanager_get_bearer "${device}")
+	# load connected bearer information, just the first one should be ok
+	modemstatus=$(/usr/bin/mmcli --modem="${device}" --output-keyvalue)
+	bearerpath=$(modemmanager_get_field "${modemstatus}" "modem.generic.bearers.value\[1\]")
 	[ -n "${bearerpath}" ] || {
 		echo "couldn't load bearer path"
 		return
 	}
 
+	# load bearer connection method
 	bearerstatus=$(/usr/bin/mmcli --bearer "${bearerpath}")
-	bearermethod=$(modemmanager_get_field "${bearerstatus}" "IPv4 configuration" "method")
+	bearermethod=$(modemmanager_get_field "${bearerstatus}" "bearer.ipv4-config.method")
 	[ -n "${bearermethod}" ] || {
 		echo "couldn't load bearer method"
 		return
@@ -417,14 +388,14 @@ proto_modemmanager_teardown() {
 		;;
 	esac
 
-	# Disconnect
+	# disconnect
 	/usr/bin/mmcli --modem="${device}" --simple-disconnect ||
 		proto_notify_error "${interface}" DISCONNECT_FAILED
 
-	# Disable
+	# disable
 	/usr/bin/mmcli --modem="${device}" --disable
 
-	# Low power, only if requested
+	# low power, only if requested
 	[ "${lowpower:-0}" -lt 1 ] ||
 		/usr/bin/mmcli --modem="${device}" --set-power-state-low
 }
