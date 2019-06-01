@@ -302,7 +302,7 @@ proto_modemmanager_setup() {
 	registration=$(modemmanager_get_field "${modemstatus}" "modem.3gpp.registration-state")
 	[ -n "${registration}" ] && echo "registration type: ${registration}"
 	accesstech=$(modemmanager_get_multivalue_field "${modemstatus}" "modem.generic.access-technologies")
-	[ -n "${accesstech}"] && echo "access technology: ${accesstech}"
+	[ -n "${accesstech}" ] && echo "access technology: ${accesstech}"
 	signalquality=$(modemmanager_get_field "${modemstatus}" "modem.generic.signal-quality.value")
 	[ -n "${signalquality}" ] && echo "signal quality: ${signalquality}%"
 
